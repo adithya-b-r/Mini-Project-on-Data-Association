@@ -18,12 +18,14 @@ const mySecretKey = "ThisIsVerySecretKey";
 
 // MiddleWares
 function isLoggedIn(req, res, next) {
-  if (req.cookies.token === "")
-    res.send("You must be logged in");
-  else {
+  if (req.cookies.token && req.cookies.token != "") {
     let data = jwt.verify(req.cookies.token, mySecretKey);
     req.user = data;
     next();
+  }
+  else {
+    // res.send("You must be logged in");
+    res.redirect("login")
   }
 }
 
@@ -41,11 +43,11 @@ app.get('/logout', (req, res) => {
   res.redirect("login");
 })
 
-app.get('/profile', isLoggedIn, (req, res) => {
-  if (req.user)
-    console.log(req.user);
+app.get('/profile', isLoggedIn, async (req, res) => {
+  //Populating the post ids.
+  let user = await userModel.findOne({ email: req.user.email }).populate("posts");;
 
-  res.send("Meow {^_^}, This is Profile");
+  res.render("profile", { user });
 })
 
 // post methods
@@ -85,11 +87,27 @@ app.post('/login', async (req, res) => {
     if (result) {
       let token = jwt.sign({ email: user.email, userid: user._id }, mySecretKey);
       res.cookie("token", token);
-      res.status(200).send("You can login");
+      // res.status(200).send("You can login");
+      res.status(200).redirect("profile");
     }
     else
       res.redirect("login");
   })
+});
+
+app.post('/post', isLoggedIn, async (req, res) => {
+  let user = await userModel.findOne({ email: req.user.email })
+  let { content } = req.body;
+
+  let post = await postModel.create({
+    user: user._id,
+    content
+  });
+
+  user.posts.push(post._id);
+  await user.save();
+
+  res.redirect("profile")
 });
 
 app.listen(3000);
