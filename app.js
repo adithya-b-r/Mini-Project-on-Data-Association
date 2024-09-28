@@ -64,6 +64,12 @@ app.get('/like/:id', isLoggedIn, async (req, res) => {
   res.redirect("/profile");
 });
 
+app.get('/edit/:id', isLoggedIn, async (req, res) => {
+  let post = await postModel.findOne({_id: req.params.id}).populate("user");
+  
+  res.render("edit", { post });
+});
+
 // post methods
 app.post('/register', async (req, res) => {
   let { name, username, age, email, password } = req.body;
@@ -122,6 +128,12 @@ app.post('/post', isLoggedIn, async (req, res) => {
   await user.save();
 
   res.redirect("profile")
+});
+
+app.post("/update/:id", isLoggedIn, async(req, res) => {
+  let post = await postModel.findOneAndUpdate({ _id: req.params.id}, {content: req.body.content}, );
+
+  res.redirect("/profile")
 });
 
 app.listen(3000);
